@@ -1,0 +1,181 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>GRID DEFENDER</title>
+	<script type="text/javascript" src="libs/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+    var width = 1280;
+    var height = 720;
+    var staticRotaion = 1.6;
+    var game = new Phaser.Game(width, height, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+    var player;
+    
+    var rock;
+    var rocks;
+    
+    var bullets;
+    var bullet;
+    var pad;
+    
+    var fireRate = 500;
+    var nextFire = 0;
+    var rockCount = 10;
+
+    function preload(){
+        // preloading images
+        game.load.image('stars', 'assets/stars.png');
+        game.load.image('rock', 'assets/rock.gif')
+        game.load.spritesheet('bullet', 'assets/bullet.png', 0, 0);
+        game.load.spritesheet('ship', 'assets/ship.png', 0, 0);
+        
+        game.load.spritesheet('pad', 'assets/paddle2.png', 0, 0);
+
+    }
+
+    function create(){
+        // configuring game settings
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+        game.add.sprite(0, 0, 'stars');
+        
+        // player bullets
+        pad = game.add.sprite(32, 32, 'pad');
+        
+        bullets = game.add.group();
+        bullets.enableBody = true;
+        pad.enableBody = true;
+        bullets.physicsBodyType = Phaser.Physics.ARCADE;
+    
+        bullets.createMultiple(40, 'bullet');
+        bullets.setAll('anchor.x', 0.5);
+        bullets.setAll('anchor.y', 0.5);
+        bullets.setAll('checkWorldBounds', true);
+        bullets.setAll('outOfBoundsKill', true);
+        
+        // player settings
+        player = game.add.sprite(width/2, height/2, 'ship');
+        player.anchor.setTo(0.5, 0.5);
+        game.physics.arcade.enable(player);
+        player.body.enable = true;
+        player.body.collideWorldBounds = true;
+        player.body.setSize(60, 60);
+        
+        // configuring meteors
+        rocks = game.add.group();
+        rocks.enableBody = true;
+        rocks.physicsBodyType = Phaser.Physics.ARCADE;
+
+        // enableing controls 
+        cursors = game.input.keyboard.createCursorKeys();
+        
+        // creates rocks and gives them angular movement
+        resetRock();
+    }
+    
+    function update(){
+        // player rotation 
+        player.rotation = game.physics.arcade.angleToPointer(player) + staticRotaion;
+        player.body.velocity.x = 0;
+        player.body.velocity.y = 0;
+        
+        if(game.input.keyboard.isDown(Phaser.Keyboard.A)){
+            player.body.velocity.x = - 150;
+        }
+        
+        if(game.input.keyboard.isDown(Phaser.Keyboard.D)){
+            player.body.velocity.x = 150;
+        }
+        
+        if(game.input.keyboard.isDown(Phaser.Keyboard.W)){
+            player.body.velocity.y = -150;
+        }
+        
+        if(game.input.keyboard.isDown(Phaser.Keyboard.S)){
+            player.body.velocity.y = 150;
+        }
+        
+        if(game.input.activePointer.isDown){
+            fire();
+        }
+        
+        rocks.forEachExists(function(rock){game.world.wrap(rock.body)});
+        
+        game.physics.arcade.overlap(bullets, rocks, function(bullet, rock){rockCollision(bullet, rock)}, null, this);
+        game.physics.arcade.overlap(player, rocks, function(player, rock){rockCollision(player, rock)}, null, this);
+    }
+    
+    function render(){
+        //game.debug.spriteInfo(player, 32, 32);
+        //game.debug.body(rock);
+        game.debug.body(pad);
+        //game.debug.body(bullet);
+    }
+    
+    function fire(){
+        if(game.time.now > nextFire && bullets.countDead() > 0){
+            nextFire = game.time.now + fireRate;
+            bullet = bullets.getFirstDead();
+            bullet.reset(player.x, player.y);
+            bullet.rotation = player.rotation;
+            game.physics.arcade.moveToPointer(bullet, 300);
+            bullet.body.setSize(50, 50);
+        }
+    }
+    
+    function createRock(x, y){
+        rock = rocks.create(x, y, 'rock');
+        rock.anchor.set(0.5, 0.5);
+        rock.body.angularVelocity = game.rnd.integerInRange(0, 200);
+        
+        var randomAngle = game.math.degToRad(game.rnd.angle());
+        var randomVelocity = 50 + game.rnd.integerInRange(40, 150);
+ 
+        game.physics.arcade.velocityFromRotation(randomAngle, randomVelocity, rock.body.velocity);
+        rock.body.setSize(80, 80);
+    }
+    
+    function resetRock(){
+        for(var i = 0; i < rockCount; i++){
+            var side = Math.round(Math.random());
+            var x;
+            var y;
+            
+            if (side) {
+                x = Math.round(Math.random()) * width;
+                y = Math.random() * height;
+            } else {
+                x = Math.random() * width;
+                y = Math.round(Math.random()) * height;
+            }
+            
+            createRock(x, y);
+        }
+    }
+    
+    function rockCollision(target, rock){
+        target.kill();
+        rock.kill();
+    }
+
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
